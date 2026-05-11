@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Fragment } from 'react';
 import type { Investor } from '@/app/page';
 
 type Props = {
@@ -82,9 +82,8 @@ export default function InvestorTable({ investors, onUpdateStatus }: Props) {
                 const isExpanded = expandedRow === originalIndex;
 
                 return (
-                  <>
+                  <Fragment key={originalIndex}>
                     <tr
-                      key={originalIndex}
                       onClick={() => setExpandedRow(isExpanded ? null : originalIndex)}
                       className="hover:bg-gray-50 cursor-pointer transition-colors"
                     >
@@ -120,7 +119,7 @@ export default function InvestorTable({ investors, onUpdateStatus }: Props) {
                       </td>
                     </tr>
                     {isExpanded && (
-                      <tr key={`${originalIndex}-expanded`}>
+                      <tr>
                         <td colSpan={6} className="px-6 py-4 bg-gray-50">
                           <div className="space-y-4">
                             {investor.redFlag && (
@@ -152,7 +151,7 @@ export default function InvestorTable({ investors, onUpdateStatus }: Props) {
                         </td>
                       </tr>
                     )}
-                  </>
+                  </Fragment>
                 );
               })}
             </tbody>

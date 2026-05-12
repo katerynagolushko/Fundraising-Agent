@@ -15,6 +15,37 @@ export default function TablePage() {
   const [filter, setFilter] = useState<'all' | IntroPath>('all');
   const [expandedRow, setExpandedRow] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
+  const [enrichingIds, setEnrichingIds] = useState<Set<number>>(new Set());
+
+  const enrichInvestor = async (investor: Investor, index: number) => {
+    setEnrichingIds(prev => new Set(prev).add(index));
+
+    try {
+      const response = await fetch('/api/enrich', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ investor }),
+      });
+
+      if (!response.ok) throw new Error('Enrichment failed');
+
+      const data = await response.json();
+
+      setInvestors(prev => {
+        const updated = [...prev];
+        updated[index] = { ...updated[index], ...data.investor };
+        return updated;
+      });
+    } catch (error) {
+      console.error(`Enrichment failed for ${investor.name}:`, error);
+    } finally {
+      setEnrichingIds(prev => {
+        const next = new Set(prev);
+        next.delete(index);
+        return next;
+      });
+    }
+  };
 
   useEffect(() => {
     const loadInvestors = async () => {
@@ -37,9 +68,14 @@ export default function TablePage() {
 
         const data = await response.json();
         setInvestors(data.investors);
+        setLoading(false);
+
+        // Start progressive enrichment
+        data.investors.forEach((investor: Investor, index: number) => {
+          setTimeout(() => enrichInvestor(investor, index), index * 300);
+        });
       } catch (error) {
         console.error(error);
-      } finally {
         setLoading(false);
       }
     };
@@ -182,10 +218,15 @@ export default function TablePage() {
                           <a href={investor.applyUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-medium hover:underline" style={{ color: colors.red }}>
                             Apply →
                           </a>
+                        ) : enrichingIds.has(investors.indexOf(investor)) ? (
+                          <div className="flex items-center gap-2">
+                            <div className="animate-spin h-4 w-4 border-2 border-t-transparent rounded-full" style={{ borderColor: colors.gold }} />
+                            <span className="text-xs" style={{ color: colors.textMuted }}>Finding...</span>
+                          </div>
                         ) : (
                           <div className="flex gap-2">
                             {investor.email && (
-                              <a href={`mailto:${investor.email}`} className="text-sm" style={{ color: colors.gold }}>✉️</a>
+                              <a href={`mailto:${investor.email}`} className="text-sm" style={{ color: colors.gold }} title={investor.email}>✉️</a>
                             )}
                             {investor.linkedin && (
                               <a href={`https://linkedin.com/in/${investor.linkedin}`} target="_blank" rel="noopener noreferrer" className="text-sm" style={{ color: colors.gold }}>in</a>

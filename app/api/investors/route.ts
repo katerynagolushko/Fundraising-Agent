@@ -281,32 +281,26 @@ Return ONLY valid JSON array, no markdown, no backticks:
 
     let investors = JSON.parse(jsonMatch[0]);
 
-    console.log(`Enriching ${investors.length} investors with signals and emails...`);
-
-    const enrichPromises = investors.map(async (investor: any, index: number) => {
-      await new Promise(resolve => setTimeout(resolve, index * 100));
-
+    // Add basic fallback contact info
+    investors = investors.map((investor: any) => {
       if (investor.type === 'investor') {
-        investor = await enrichWithTwitterSignals(investor);
-        investor = await findEmail(investor);
-
-        // Ensure at least LinkedIn if no other contact
-        if (!investor.linkedin && !investor.twitter) {
+        // Construct LinkedIn if missing
+        if (!investor.linkedin) {
           const firstName = investor.name.split(' ')[0].toLowerCase();
           const lastName = investor.name.split(' ').slice(-1)[0].toLowerCase();
           investor.linkedin = `${firstName}-${lastName}`;
-          console.log(`Constructed likely LinkedIn for ${investor.name}: ${investor.linkedin}`);
         }
-      } else {
-        investor = await enrichAccelerator(investor);
+        // Construct email if missing
+        if (!investor.email && investor.fund) {
+          const firstName = investor.name.split(' ')[0].toLowerCase();
+          const domain = investor.fund.toLowerCase().replace(/\s+/g, '').replace(/ventures?|capital|partners?/g, '') + '.com';
+          investor.email = `${firstName}@${domain}`;
+        }
       }
-
       return investor;
     });
 
-    investors = await Promise.all(enrichPromises);
-
-    console.log(`Returning ${investors.length} enriched investors`);
+    console.log(`Returning ${investors.length} investors (enrichment will happen client-side)`);
 
     return NextResponse.json({ investors });
   } catch (error) {

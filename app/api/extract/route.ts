@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     let deckText = '';
 
     if (file.type === 'application/pdf') {
-      const pdfParse = (await import('pdf-parse')).default;
+      const pdfParse = require('pdf-parse');
       const data = await pdfParse(buffer);
       deckText = data.text;
     } else if (file.type.includes('presentation')) {

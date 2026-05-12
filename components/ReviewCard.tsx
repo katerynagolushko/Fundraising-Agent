@@ -24,9 +24,9 @@ function EditableField({ label, value, confidence, onChange, multiline }: FieldP
     if (!confidence) return null;
 
     const badges = {
-      high: { text: 'high confidence', bg: colors.goldLight + '40', color: colors.goldDark },
-      medium: { text: 'needs review', bg: colors.red + '20', color: colors.red },
-      low: { text: 'not found — add manually', bg: 'transparent', color: colors.textMuted, border: '1px dashed' + colors.border },
+      high: { text: 'high confidence', bg: colors.goldLight + '40', color: colors.goldDark, border: undefined },
+      medium: { text: 'needs review', bg: colors.red + '20', color: colors.red, border: undefined },
+      low: { text: 'not found — add manually', bg: 'transparent', color: colors.textMuted, border: '1px dashed ' + colors.border },
     };
 
     const badge = badges[confidence];

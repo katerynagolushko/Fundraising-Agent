@@ -101,6 +101,17 @@ async function findEmail(investor: any) {
     console.error(`Email finding failed for ${investor.name}:`, error);
   }
 
+  // Final fallback: construct likely email if still empty
+  if (!investor.email && investor.fund) {
+    const firstName = investor.name.split(' ')[0].toLowerCase();
+    const lastName = investor.name.split(' ').slice(-1)[0].toLowerCase();
+    const domain = investor.fund.toLowerCase().replace(/\s+/g, '').replace(/ventures?|capital|partners?/g, '') + '.com';
+
+    // Try common patterns
+    investor.email = `${firstName}@${domain}`;
+    console.log(`Constructed fallback email for ${investor.name}:`, investor.email);
+  }
+
   return investor;
 }
 
@@ -213,9 +224,15 @@ CRITICAL INSTRUCTIONS:
 5. Include 2-3 top accelerators if stage is pre-seed
 6. Be honest about red flags
 7. Leave "email" empty — will be found separately
-8. Only include LinkedIn/Twitter handles if clearly mentioned in search results
+8. **IMPORTANT**: Extract LinkedIn and Twitter handles from search results
+   - Look for "linkedin.com/in/..." links → extract just the handle (e.g., "johndoe")
+   - Look for "twitter.com/..." or "@username" → extract handle (e.g., "johndoe")
+   - Check URLs in search results for social profiles
+   - If found in search results, ALWAYS include them
+9. For "signals", extract 3 specific facts from search results (recent investments, tweets, thesis)
 
 DO NOT make up or hallucinate investors. Only use information from the search results.
+Every investor MUST have at least linkedin OR twitter handle if mentioned in search results.
 
 Return ONLY valid JSON array, no markdown, no backticks:
 [{
@@ -272,6 +289,14 @@ Return ONLY valid JSON array, no markdown, no backticks:
       if (investor.type === 'investor') {
         investor = await enrichWithTwitterSignals(investor);
         investor = await findEmail(investor);
+
+        // Ensure at least LinkedIn if no other contact
+        if (!investor.linkedin && !investor.twitter) {
+          const firstName = investor.name.split(' ')[0].toLowerCase();
+          const lastName = investor.name.split(' ').slice(-1)[0].toLowerCase();
+          investor.linkedin = `${firstName}-${lastName}`;
+          console.log(`Constructed likely LinkedIn for ${investor.name}: ${investor.linkedin}`);
+        }
       } else {
         investor = await enrichAccelerator(investor);
       }

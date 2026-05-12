@@ -284,13 +284,7 @@ Return ONLY valid JSON array, no markdown, no backticks:
     // Add basic fallback contact info
     investors = investors.map((investor: any) => {
       if (investor.type === 'investor') {
-        // Construct LinkedIn if missing
-        if (!investor.linkedin) {
-          const firstName = investor.name.split(' ')[0].toLowerCase();
-          const lastName = investor.name.split(' ').slice(-1)[0].toLowerCase();
-          investor.linkedin = `${firstName}-${lastName}`;
-        }
-        // Construct email if missing
+        // Only construct email if missing (LinkedIn must come from search results)
         if (!investor.email && investor.fund) {
           const firstName = investor.name.split(' ')[0].toLowerCase();
           const domain = investor.fund.toLowerCase().replace(/\s+/g, '').replace(/ventures?|capital|partners?/g, '') + '.com';

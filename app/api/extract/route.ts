@@ -8,6 +8,7 @@ const client = new Anthropic({
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('Starting extraction...');
     const formData = await request.formData();
     const file = formData.get('file') as File;
     const linkedinUrlsStr = formData.get('linkedinUrls') as string;
@@ -17,13 +18,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
+    console.log('File type:', file.type, 'Size:', file.size);
     const buffer = Buffer.from(await file.arrayBuffer());
     let deckText = '';
 
     if (file.type === 'application/pdf') {
-      const pdfParse = require('pdf-parse');
+      console.log('Parsing PDF...');
+      const pdfParse = require('pdf-parse-fork');
       const data = await pdfParse(buffer);
       deckText = data.text;
+      console.log('PDF parsed, text length:', deckText.length);
     } else if (file.type.includes('presentation')) {
       const result = await mammoth.extractRawText({ buffer });
       deckText = result.value;

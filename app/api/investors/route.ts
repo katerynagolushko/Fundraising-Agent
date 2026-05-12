@@ -68,7 +68,7 @@ async function findEmail(investor: any) {
     });
 
     const { items } = await apifyClient.dataset(run.defaultDatasetId).listItems();
-    const emails = items[0]?.emails || [];
+    const emails: string[] = (items[0]?.emails as string[]) || [];
 
     const relevantEmail = emails.find((email: string) =>
       email.toLowerCase().includes(investor.name.split(' ')[0].toLowerCase())

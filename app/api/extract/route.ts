@@ -1,6 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { NextRequest, NextResponse } from 'next/server';
-import pdf from 'pdf-parse';
 import mammoth from 'mammoth';
 
 const client = new Anthropic({
@@ -22,7 +21,8 @@ export async function POST(request: NextRequest) {
     let deckText = '';
 
     if (file.type === 'application/pdf') {
-      const data = await pdf(buffer);
+      const pdfParse = (await import('pdf-parse')).default;
+      const data = await pdfParse(buffer);
       deckText = data.text;
     } else if (file.type.includes('presentation')) {
       const result = await mammoth.extractRawText({ buffer });

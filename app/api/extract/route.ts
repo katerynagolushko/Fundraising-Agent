@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { NextRequest, NextResponse } from 'next/server';
-import pdf from 'pdf-parse/lib/pdf-parse';
+import pdf from 'pdf-parse';
 import mammoth from 'mammoth';
 
 const client = new Anthropic({

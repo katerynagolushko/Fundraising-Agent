@@ -5,7 +5,14 @@
       "Bash(pkill *)",
       "Bash(npm install *)",
       "Bash(npm uninstall *)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git remote *)",
+      "Bash(git push *)",
+      "Bash(git config *)",
+      "Bash(git rebase *)",
+      "Bash(git stash *)",
+      "Bash(git filter-branch *)"
     ]
   }
 }

@@ -57,6 +57,7 @@ async function findEmail(investor: any) {
   try {
     const fundWebsite = `https://${investor.fund.toLowerCase().replace(/\s+/g, '')}.com`;
     const teamPage = `${fundWebsite}/team`;
+    console.log(`Finding email for ${investor.name} at ${teamPage}...`);
 
     const run = await apifyClient.actor('apify/web-scraper').call({
       startUrls: [{ url: teamPage }],
@@ -69,14 +70,17 @@ async function findEmail(investor: any) {
 
     const { items } = await apifyClient.dataset(run.defaultDatasetId).listItems();
     const emails: string[] = (items[0]?.emails as string[]) || [];
+    console.log(`Found ${emails.length} emails for ${investor.name}:`, emails.slice(0, 3));
 
     const relevantEmail = emails.find((email: string) =>
       email.toLowerCase().includes(investor.name.split(' ')[0].toLowerCase())
     );
 
     if (relevantEmail) {
+      console.log(`Matched email for ${investor.name}:`, relevantEmail);
       investor.email = relevantEmail;
     } else {
+      console.log(`No match, trying fallback for ${investor.name}...`);
       try {
         const fallbackRun = await apifyClient.actor('eakpbkbmzgrqwfpay').call({
           query: `${investor.name} ${investor.fund} email`,

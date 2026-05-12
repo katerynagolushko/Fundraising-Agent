@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { ApifyClient } from 'apify-client';
+import { tavily } from '@tavily/core';
 import { NextRequest, NextResponse } from 'next/server';
 import { ACCELERATORS } from '@/lib/accelerators';
 
@@ -10,6 +11,8 @@ const anthropicClient = new Anthropic({
 const apifyClient = new ApifyClient({
   token: process.env.APIFY_API_TOKEN,
 });
+
+const tavilyClient = tavily({ apiKey: process.env.TAVILY_API_KEY });
 
 async function enrichWithTwitterSignals(investor: any) {
   if (!investor.twitter || investor.type !== 'investor') return investor;
@@ -149,7 +152,36 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { profile, refinements } = body;
 
-    const researchPrompt = `You are a world-class fundraising advisor with deep knowledge of the VC ecosystem.
+    // Step 1: Search for REAL investors with Tavily
+    console.log('Searching for real investors with Tavily...');
+    const searches = [
+      `${profile.sector} ${profile.stage} venture capital investors ${profile.geography?.join(' ')} 2026`,
+      `top VCs investing in ${profile.sector} ${profile.stage} ${profile.geography?.join(' ')}`,
+      `${profile.sector} ${profile.stage} funding ${profile.geography?.join(' ')} investors`,
+      `recent ${profile.sector} investments ${profile.stage}`,
+    ];
+
+    const searchPromises = searches.map(query =>
+      tavilyClient.search(query, {
+        maxResults: 5,
+        searchDepth: 'advanced',
+        includeAnswer: false,
+      })
+    );
+
+    const searchResults = await Promise.all(searchPromises);
+    const allResults = searchResults
+      .flatMap(result => result.results)
+      .map(r => ({
+        title: r.title,
+        url: r.url,
+        content: r.content,
+      }));
+
+    console.log(`Found ${allResults.length} search results about real investors`);
+
+    // Step 2: Claude analyzes REAL search results and ranks by fit
+    const researchPrompt = `You are a world-class fundraising advisor. I've gathered real web search results about current ${profile.sector} investors. Your task is to analyze these REAL search results and identify exactly 15 investors/programs ranked by fit.
 
 Startup profile:
 - Sector: ${profile.sector}
@@ -166,12 +198,24 @@ ${refinements.arr ? `- ARR: ${refinements.arr}` : ''}
 - Warm connections: ${profile.warmConnections}
 ${refinements.investorTypes?.length ? `- Preferred investor types: ${refinements.investorTypes.join(', ')}` : ''}
 
-Generate exactly 15 investors/programs ranked by genuine fit.
-Reason like a senior advisor — revealed thesis, actual portfolio patterns,
-communication style, and whether this team profile appeals to them.
-Be honest about red flags. Include 2-3 accelerators if stage is pre-seed.
-Leave "email" as empty string — it will be found separately.
-Only include twitter/linkedin handles you are highly confident are correct.
+REAL SEARCH RESULTS FROM WEB (2026):
+${allResults.map((r, i) => `
+[${i + 1}] ${r.title}
+URL: ${r.url}
+${r.content}
+`).join('\n---\n')}
+
+CRITICAL INSTRUCTIONS:
+1. ONLY include investors that are clearly mentioned in the search results above
+2. Extract their real names, funds, and details from the search results
+3. Verify they actually invest in this sector/stage based on search results
+4. Rank by genuine fit based on what you learned from the searches
+5. Include 2-3 top accelerators if stage is pre-seed
+6. Be honest about red flags
+7. Leave "email" empty — will be found separately
+8. Only include LinkedIn/Twitter handles if clearly mentioned in search results
+
+DO NOT make up or hallucinate investors. Only use information from the search results.
 
 Return ONLY valid JSON array, no markdown, no backticks:
 [{
